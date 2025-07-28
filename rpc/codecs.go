@@ -5,6 +5,7 @@ import "github.com/valyala/fasthttp"
 type HeartbeatCodec struct{}
 
 func (c *HeartbeatCodec) MarshalRequest(req *RequestHeartbeat, fhttp *fasthttp.Request) error {
+	fhttp.URI().SetPath(pathFor(HandlerHeartbeat))
 	return nil
 }
 func (c *HeartbeatCodec) UnmarshalRequest(fhttp *fasthttp.RequestCtx) (*RequestHeartbeat, error) {

@@ -1,6 +1,12 @@
 package rpc
 
-import "github.com/valyala/fasthttp"
+import (
+	"encoding/hex"
+	"fmt"
+	"log/slog"
+
+	"github.com/valyala/fasthttp"
+)
 
 type Server struct {
 	Address  string
@@ -8,18 +14,29 @@ type Server struct {
 }
 
 func (s *Server) Register(id int, handler fasthttp.RequestHandler) {
+	slog.Info("registering handler", "id", idString(id))
 	s.handlers[id] = handler
 }
 
 func (s *Server) ListenAndServe() error {
 	return fasthttp.ListenAndServe(s.Address, func(ctx *fasthttp.RequestCtx) {
 		p := ctx.Path()
-		if len(p) < 1 {
+		if len(p) != 3 || p[0] != '/' {
 			ctx.SetStatusCode(fasthttp.StatusBadRequest)
-			ctx.WriteString("invalid path")
 			return
 		}
-		handler := s.handlers[int(p[0])]
+		var id [1]byte
+		_, err := hex.Decode(id[:], p[1:])
+		if err != nil {
+			ctx.SetStatusCode(fasthttp.StatusBadRequest)
+			return
+		}
+		fmt.Println("Handling request for ID:", id[0])
+		handler := s.handlers[int(id[0])]
+		if handler == nil {
+			ctx.SetStatusCode(fasthttp.StatusNotFound)
+			return
+		}
 		handler(ctx)
 	})
 }
